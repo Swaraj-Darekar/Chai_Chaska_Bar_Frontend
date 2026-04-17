@@ -12,8 +12,12 @@ import Login from './auth/Login';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, role }) => {
+  // Use a slight delay or reactive check if needed, but for now, ensure it reads correctly
   const isAdmin = localStorage.getItem('ccb_admin_auth') === 'true';
   const isSuperAdmin = localStorage.getItem('ccb_superadmin_auth') === 'true';
+  
+  // Debugging logs to help identify refresh issues in production
+  console.log(`Auth Check - Role: ${role}, isAdmin: ${isAdmin}, isSuperAdmin: ${isSuperAdmin}`);
 
   if (role === 'superadmin' && !isSuperAdmin) {
     return <Navigate to="/login" replace />;

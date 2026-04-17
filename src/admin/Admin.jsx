@@ -2038,7 +2038,17 @@ const Admin = () => {
                           }
                           throw new Error("Failed");
                         }
-                        setShowBillingModal(false); setBillingDiscount(0); setBillingExtraMoney(0); fetchOrders(); fetchHistory(); fetchWallet(); 
+                        setShowBillingModal(false); 
+                        setBillingDiscount(0); 
+                        setBillingExtraMoney(0); 
+                        
+                        // Small delay before fetching to ensure DB commit is visible
+                        setTimeout(() => {
+                          fetchOrders(); 
+                          fetchHistory(); 
+                          fetchWallet(); 
+                        }, 500);
+                        
                         addNotification(`Bill completed! ₹${Math.round(billingFinalPayable)}`, 'success'); 
                       } catch (e) { 
                         console.error(e); addNotification('Failed to complete payment', 'error'); 
