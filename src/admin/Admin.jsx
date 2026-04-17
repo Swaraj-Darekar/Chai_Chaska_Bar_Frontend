@@ -975,7 +975,7 @@ const SettingsView = ({
               <h3 style={{fontSize: '1rem', fontWeight: '700', marginBottom: '15px'}}>2. Add Menu Item</h3>
               <div className="expense-form">
                 <div className="form-group"><label>Select Category</label><select value={newItem.category_id} onChange={e => setNewItem({...newItem, category_id: e.target.value})} style={{padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', width: '100%'}}><option value="">Select a category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div>
-                <div style={{display: 'flex', gap: '15px'}}><div className="form-group" style={{flex: 2}}><label>Item Name</label><input type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} placeholder="e.g. Cappuccino" /></div><div className="form-group" style={{flex: 1}}><label>Price (₹)</label><input type="number" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} placeholder="150" /></div></div>
+                <div style={{display: 'flex', gap: '15px'}}><div className="form-group" style={{flex: 2, minWidth: 0}}><label>Item Name</label><input type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} placeholder="e.g. Cappuccino" style={{minWidth: 0}} /></div><div className="form-group" style={{flex: 1, minWidth: 0}}><label>Price (₹)</label><input type="number" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} placeholder="150" style={{minWidth: 0}} /></div></div>
                 <div className="form-group"><label>Item Image</label><input type="file" accept="image/*" onChange={handleImageUpload} style={{padding: '10px'}} />{newItem.image_url && <img src={newItem.image_url} alt="Preview" style={{width: '60px', height: '60px', marginTop: '10px', borderRadius: '8px', objectFit: 'cover'}} />}</div>
                 <button className="btn-add-item-purple" style={{ width: '100%', marginTop: '10px' }} onClick={handleAddItem}>Add Item</button>
               </div>
@@ -995,7 +995,7 @@ const SettingsView = ({
                     <h3 style={{fontSize: '1.15rem', fontWeight: 'bold', color: '#1e293b'}}>{cat.name}</h3>
                     <div style={{display: 'flex', gap: '8px'}}>
                       <button className="btn-filter" style={{padding: '6px 12px', fontSize: '0.8rem', background: '#e0e7ff'}} onClick={() => handleEditCategoryName(cat)}>✎ Edit Name</button>
-                      <button className="btn-delete-card" style={{padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px'}} onClick={() => handleDeleteCategory(cat)}>🗑️ Delete</button>
+                      <button className="btn-delete-card" style={{padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px'}} onClick={() => handleDeleteCategory(cat)}>🗑️</button>
                     </div>
                   </div>
                   {menuItems.filter(item => item.category_id === cat.id).map(item => (
