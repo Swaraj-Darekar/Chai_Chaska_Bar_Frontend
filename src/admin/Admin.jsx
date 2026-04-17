@@ -1193,10 +1193,16 @@ const Admin = () => {
       });
 
       if (res.ok) {
+        const updatedOrder = await res.json();
         fetchOrders();
         handleClearModalCart();
         setShowAddItemModal(false);
         addNotification(`Added ${itemsToSubmit.length} items to order!`, 'success');
+        
+        if (selectedOrder.table_id === 'Takeaway') {
+           setSelectedOrder({ ...updatedOrder, payment_mode: 'online' });
+           setShowBillingModal(true);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -1924,7 +1930,6 @@ const Admin = () => {
                         <input 
                           type="number" 
                           placeholder="0" 
-                          autoFocus
                           value={billingDiscount || ''} 
                           onChange={(e) => setBillingDiscount(parseFloat(e.target.value) || 0)} 
                         />
@@ -1941,7 +1946,6 @@ const Admin = () => {
                         <input 
                           type="number" 
                           placeholder="0" 
-                          autoFocus
                           value={billingExtraMoney || ''} 
                           onChange={(e) => setBillingExtraMoney(parseFloat(e.target.value) || 0)} 
                         />
@@ -1995,7 +1999,6 @@ const Admin = () => {
                           type="number" 
                           placeholder="0.00" 
                           className="input-cash-big" 
-                          autoFocus
                           onChange={(e) => { 
                             const tendered = parseFloat(e.target.value) || 0; 
                             setSelectedOrder({...selectedOrder, tendered, change: tendered - billingFinalPayable}); 
