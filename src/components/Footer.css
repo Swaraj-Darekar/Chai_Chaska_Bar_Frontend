@@ -1,0 +1,145 @@
+.footer {
+  background-color: var(--bg-main);
+  padding: 5rem 0 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 3rem;
+  margin-bottom: 4rem;
+}
+
+.footer-logo {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.footer-desc {
+  color: var(--color-text-muted);
+  margin-bottom: 2rem;
+  max-width: 300px;
+}
+
+.social-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--bg-card);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+  transition: var(--transition-smooth);
+}
+
+.social-icon:hover {
+  background: var(--color-primary);
+  transform: translateY(-3px);
+  color: white;
+}
+
+.footer-heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-main);
+}
+
+.footer-list {
+  list-style: none;
+}
+
+.footer-list li {
+  margin-bottom: 1rem;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.footer-list a {
+  transition: var(--transition-smooth);
+}
+
+.footer-list a:hover {
+  color: var(--color-primary);
+  padding-left: 5px;
+}
+
+.contact-icon {
+  font-size: 1.2rem;
+}
+
+.footer-hours li {
+  justify-content: space-between;
+}
+
+.footer-bottom {
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 2rem;
+}
+
+.footer-bottom-links a:hover {
+  color: var(--color-text-main);
+}
+
+.hidden-admin-trigger {
+  opacity: 0.4;
+  font-size: 0.75rem;
+  cursor: default;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: opacity 0.3s;
+}
+
+.hidden-admin-trigger:hover {
+  opacity: 0.8;
+  color: var(--color-text-muted) !important;
+}
+
+.admin-login-link {
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+.admin-login-link:hover {
+  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 992px) {
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
+}

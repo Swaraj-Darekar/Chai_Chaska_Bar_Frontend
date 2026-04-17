@@ -1,0 +1,153 @@
+.about-section {
+  background-color: var(--bg-main);
+  position: relative;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.about-image-wrapper {
+  position: relative;
+  padding: 2rem 0 0 2rem;
+}
+
+.about-image-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 90%;
+  height: 90%;
+  border: 2px solid var(--color-primary);
+  border-radius: 20px;
+  z-index: 1;
+}
+
+.about-image-container {
+  position: relative;
+  z-index: 2;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+.about-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.5s ease;
+}
+
+.about-img:hover {
+  transform: scale(1.05);
+}
+
+.about-badge {
+  position: absolute;
+  bottom: 20px;
+  right: -20px;
+  background: var(--color-primary);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 10px 20px rgba(242, 107, 39, 0.4);
+  transform: translateX(-20px);
+}
+
+.about-badge span {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.about-badge p {
+  font-size: 0.9rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+.section-subtitle {
+  color: var(--color-primary);
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.title-underline {
+  width: 60px;
+  height: 4px;
+  background: var(--color-secondary);
+  border-radius: 2px;
+  margin-bottom: 2rem;
+}
+
+.about-text {
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.features-list {
+  margin-top: 2.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.2rem;
+}
+
+.feature-icon {
+  font-size: 1.8rem;
+  width: 50px;
+  height: 50px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.feature-item h4 {
+  font-size: 1.1rem;
+  margin-bottom: 0.3rem;
+  color: var(--color-text-main);
+}
+
+.feature-item p {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+@media (max-width: 992px) {
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  
+  .about-image-wrapper {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+}
