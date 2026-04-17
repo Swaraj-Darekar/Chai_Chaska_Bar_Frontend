@@ -2038,16 +2038,32 @@ const Admin = () => {
                           }
                           throw new Error("Failed");
                         }
+                        // Prepare the optimistic history record
+                        const completedRecord = {
+                          ...selectedOrder,
+                          status: 'done',
+                          payment_mode: selectedOrder.payment_mode,
+                          discount: billingDiscount,
+                          extra_money: billingExtraMoney,
+                          final_amount: billingFinalPayable,
+                          completed_at: new Date().toISOString(),
+                          settled: 0
+                        };
+
                         setShowBillingModal(false); 
                         setBillingDiscount(0); 
                         setBillingExtraMoney(0); 
                         
-                        // Small delay before fetching to ensure DB commit is visible
+                        // 🚀 Optimistic State Update: Immediately add to history and remove from active
+                        setHistoryOrders(prev => [completedRecord, ...prev]);
+                        setActiveOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
+
+                        // Fetch fresh data in background to ensure sync
                         setTimeout(() => {
                           fetchOrders(); 
                           fetchHistory(); 
                           fetchWallet(); 
-                        }, 500);
+                        }, 2000); // Wait a bit longer for DB to be absolutely sure
                         
                         addNotification(`Bill completed! ₹${Math.round(billingFinalPayable)}`, 'success'); 
                       } catch (e) { 
