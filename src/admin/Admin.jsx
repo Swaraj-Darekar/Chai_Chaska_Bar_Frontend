@@ -1591,6 +1591,18 @@ const Admin = () => {
     }
   };
 
+  const handleCloseAddItemModal = async () => {
+    if (selectedOrder && selectedOrder.total_price === 0 && (!selectedOrder.items || selectedOrder.items.length === 0)) {
+       try {
+         await fetch(`${API_BASE_URL}/api/orders/${selectedOrder.id}`, { method: 'DELETE' });
+         fetchOrders();
+       } catch (e) { console.error(e); }
+    }
+    setShowAddItemModal(false);
+    handleClearModalCart();
+  };
+
+
 
 
   const billingPlatformFee = selectedOrder && selectedOrder.total_price > 40 ? 2 : 0;
@@ -1835,9 +1847,9 @@ const Admin = () => {
         </div>
       )}
       {showAddItemModal && selectedOrder && (
-        <div className="qr-modal-overlay" onClick={() => { setShowAddItemModal(false); handleClearModalCart(); }}>
+        <div className="qr-modal-overlay" onClick={handleCloseAddItemModal}>
           <div className="modern-menu-modal card shadow-2xl" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => { setShowAddItemModal(false); handleClearModalCart(); }}>×</button>
+            <button className="modal-close" onClick={handleCloseAddItemModal}>×</button>
             
             <div className="menu-modal-layout">
               {/* Left Side: Item Browser */}
