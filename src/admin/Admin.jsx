@@ -72,7 +72,9 @@ const DashboardView = ({
   qrModalData, 
   setQrModalData,
   handleStartOrder,
-  walletBalance
+  walletBalance,
+  setMoveOrderData,
+  setShowMoveTableModal
 }) => (
   <div className="admin-dashboard">
     <div className="stats-grid">
@@ -126,6 +128,11 @@ const DashboardView = ({
                     <div className="dropdown-item" onClick={() => downloadQRCode(table)}>
                        <span className="icon">⬇️</span> Download QR
                     </div>
+                    {isOccupied && (
+                      <div className="dropdown-item" onClick={() => { setMoveOrderData(activeOrder); setShowMoveTableModal(true); closeMenu(); }} style={{ color: '#6366f1', fontWeight: 'bold' }}>
+                         <span className="icon">🔄</span> Shift Table
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1115,8 +1122,11 @@ const Admin = () => {
   const [billingDiscount, setBillingDiscount] = useState(0);
   const [billingExtraMoney, setBillingExtraMoney] = useState(0);
   const [showExtraMoneyInput, setShowExtraMoneyInput] = useState(false);
+  const [showMoveTableModal, setShowMoveTableModal] = useState(false);
+  const [moveOrderData, setMoveOrderData] = useState(null);
 
   const activeOrderCount = activeOrders.length;
+
 
   const handleDeleteItemFromOrder = async (orderId, itemId) => {
     if (!window.confirm("Remove this item from order?")) return;
@@ -1503,6 +1513,59 @@ const Admin = () => {
     setNewOrderNotifications(prev => prev.filter(n => n.id !== orderId));
   };
 
+  const handleCancelOrDeleteOrder = async (order) => {
+    if (!order) return;
+    try {
+      if (order.total_price <= 2) {
+        const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}`, { method: 'DELETE' });
+        if (res.ok) addNotification("Order cancelled and removed.", "success");
+      } else {
+        const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}/complete`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            payment_mode: 'cash',
+            discount: 0,
+            extra_money: 0,
+            final_amount: order.total_price
+          })
+        });
+        if (res.ok) addNotification("Order saved to history (Cash).", "success");
+      }
+      setShowBillingModal(false);
+      setBillingDiscount(0);
+      setBillingExtraMoney(0);
+      fetchOrders();
+      fetchHistory();
+      fetchWallet();
+    } catch (e) {
+      console.error(e);
+      addNotification("Failed to process cancellation", "error");
+    }
+  };
+
+  const handleMoveOrder = async (orderId, newTableId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}/move?new_table_id=${newTableId}`, {
+        method: 'PUT'
+      });
+      if (res.ok) {
+        addNotification(`Order shifted to Table ${newTableId}`, "success");
+        setShowMoveTableModal(false);
+        setMoveOrderData(null);
+        fetchOrders();
+      } else {
+        const err = await res.json();
+        addNotification(err.detail || "Failed to shift table", "error");
+      }
+    } catch (e) {
+      console.error(e);
+      addNotification("Network error while shifting table", "error");
+    }
+  };
+
+
+
   const billingPlatformFee = selectedOrder && selectedOrder.total_price > 40 ? 2 : 0;
   const billingFinalPayable = selectedOrder ? Math.max(0, selectedOrder.total_price + billingPlatformFee + (billingExtraMoney || 0) - (billingDiscount || 0)) : 0;
 
@@ -1639,7 +1702,10 @@ const Admin = () => {
               setQrModalData={setQrModalData}
               handleStartOrder={handleStartOrder}
               walletBalance={walletBalance}
+              setMoveOrderData={setMoveOrderData}
+              setShowMoveTableModal={setShowMoveTableModal}
             />
+
           ) : currentView === 'history' ? (
             <HistoryView 
               historyOrders={historyOrders}
@@ -2016,9 +2082,10 @@ const Admin = () => {
                 </div>
 
                 <div className="billing-footer-actions">
-                  <button className="btn-cancel-bill" onClick={() => { setShowBillingModal(false); setBillingDiscount(0); setBillingExtraMoney(0); }}>
+                  <button className="btn-cancel-bill" onClick={() => handleCancelOrDeleteOrder(selectedOrder)}>
                     Cancel
                   </button>
+
                   <button 
                     className="btn-mark-paid" 
                     disabled={!selectedOrder.payment_mode}
@@ -2116,6 +2183,51 @@ const Admin = () => {
           </div>
         </div>
       )}
+
+      {showMoveTableModal && moveOrderData && (
+        <div className="qr-modal-overlay" onClick={() => { setShowMoveTableModal(false); setMoveOrderData(null); }}>
+          <div className="admin-menu-modal card shadow-2xl" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <button className="modal-close" onClick={() => { setShowMoveTableModal(false); setMoveOrderData(null); }}>×</button>
+            <h2 className="modal-title">Shift Table</h2>
+            <p className="section-desc" style={{ marginBottom: '20px' }}>Move <strong>{moveOrderData.customer_name}</strong>'s order from Table {moveOrderData.table_id} to:</p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+              {tables.map(t => {
+                const isTargetOccupied = activeOrders.some(o => o.table_id === t.id.toString() && ['pending', 'preparing', 'served'].includes(o.status));
+                const isCurrent = moveOrderData.table_id === t.id.toString();
+                
+                return (
+                  <button
+                    key={t.id}
+                    disabled={isTargetOccupied || isCurrent}
+                    onClick={() => handleMoveOrder(moveOrderData.id, t.id)}
+                    style={{
+                      padding: '20px 10px',
+                      borderRadius: '12px',
+                      border: '2px solid',
+                      borderColor: isCurrent ? '#6366f1' : isTargetOccupied ? '#e2e8f0' : '#e2e8f0',
+                      background: isCurrent ? '#eef2ff' : isTargetOccupied ? '#f8fafc' : 'white',
+                      color: isTargetOccupied ? '#94a3b8' : '#1e293b',
+                      cursor: (isTargetOccupied || isCurrent) ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.2rem', fontWeight: '800' }}>T{t.id}</span>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '600', textTransform: 'uppercase' }}>
+                      {isCurrent ? 'Current' : isTargetOccupied ? 'Occupied' : 'Select'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <NotificationToasts 
         newOrderNotifications={newOrderNotifications}
         handleRejectOrder={handleRejectOrder}
