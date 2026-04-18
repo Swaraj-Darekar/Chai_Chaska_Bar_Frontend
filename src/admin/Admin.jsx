@@ -35,7 +35,7 @@ const groupOrdersByDate = (orders) => {
       groups[key] = { label: getDateLabel(key), orders: [], total: 0, cash: 0, online: 0 };
     }
     groups[key].orders.push(order);
-    const amt = parseFloat(order.final_amount || order.total_price) || 0;
+    const amt = parseFloat(order.final_amount ?? order.total_price) || 0;
     groups[key].total += amt;
     if ((order.payment_mode || '').toLowerCase() === 'cash') {
       groups[key].cash += amt;
@@ -334,7 +334,7 @@ const HistoryView = ({
                         ? new Date(order.completed_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
                         : '—';
                       const payMode = (order.payment_mode || 'online').toLowerCase();
-                      const finalAmt = parseFloat(order.final_amount || order.total_price) || 0;
+                      const finalAmt = parseFloat(order.final_amount ?? order.total_price) || 0;
 
                       return (
                         <div key={order.id} className={`h-order-row ${idx % 2 === 0 ? 'even' : 'odd'}`}>
@@ -457,7 +457,7 @@ const HistoryView = ({
               )}
               <div className="h-sum-row grand">
                 <span>Grand Total</span>
-                <span>₹{parseFloat(historyViewOrder.final_amount || historyViewOrder.total_price || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                <span>₹{parseFloat(historyViewOrder.final_amount ?? historyViewOrder.total_price ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             </div>
           </div>
@@ -515,7 +515,7 @@ const AnalyticsView = ({ historyOrders, expenses, settlements, onSettle, onViewS
   const yesterdayData = grouped[yesterdayKey] || { total: 0, orders: [], cash: 0, online: 0 };
   
   // Monthly Stats (Current period items only)
-  const monthlySales = historyOrders.reduce((acc, o) => acc + (parseFloat(o.final_amount || o.total_price) || 0), 0);
+  const monthlySales = historyOrders.reduce((acc, o) => acc + (parseFloat(o.final_amount ?? o.total_price) || 0), 0);
   const totalExpenses = expenses.reduce((acc, e) => acc + (parseFloat(e.amount) || 0), 0);
   const netProfit = monthlySales - totalExpenses;
 
