@@ -715,7 +715,7 @@ const ExpensesView = ({ expenses, setExpenses, addNotification }) => {
   );
 };
 
-const OrdersView = ({ activeOrders, handleUpdateOrderStatus, setSelectedOrder, setShowBillingModal, handleDeleteItemFromOrder, setShowAddItemModal }) => {
+const OrdersView = ({ activeOrders, handleUpdateOrderStatus, setSelectedOrder, setShowBillingModal, handleDeleteItemFromOrder, setShowAddItemModal, handleCancelOrDeleteOrder }) => {
   const visibleOrders = activeOrders
     .filter(o => o.status === 'preparing' || o.status === 'served')
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -728,7 +728,42 @@ const OrdersView = ({ activeOrders, handleUpdateOrderStatus, setSelectedOrder, s
       <div className="orders-grid">
         {visibleOrders.length === 0 ? (<div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px', color: '#94a3b8', background: '#f8fafc', borderRadius: '20px', fontSize: '1.2rem', fontWeight: 'bold' }}>No active orders at the moment.</div>) : visibleOrders.map(order => (
           <div key={order.id} className="order-manage-card" style={{ borderTop: order.status === 'served' ? '5px solid #10b981' : '5px solid #f59e0b', display: 'flex', flexDirection: 'column' }}>
-            <div className="card-header" style={{ marginBottom: '20px' }}><div className="table-id-badge" style={{fontSize: '1.5rem', padding: '15px', background: order.status === 'served' ? '#10b981' : '#6366f1'}}>{order.table_id === 'Takeaway' ? '🥡' : `T${order.table_id}`}</div><div className="order-meta" style={{ gap: '4px' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}><span className="customer-name" style={{fontSize: '1.25rem', fontWeight: '900'}}>{order.customer_name}</span><button className="btn-add-item-card" onClick={() => { setSelectedOrder(order); setShowAddItemModal(true); }}>+ Add</button></div><span className="customer-phone" style={{fontSize: '0.9rem', color: '#64748b', fontWeight: '700'}}>📞 {order.customer_phone}</span><span className="order-time" style={{ background: '#f1f5f9', display: 'inline-block', padding: '4px 8px', borderRadius: '6px', width: 'fit-content', marginTop: '4px' }}>{order.status === 'preparing' ? '⏳ Preparing' : '✅ Ready'} • {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div></div>
+            <div className="card-header" style={{ marginBottom: '20px' }}>
+              <div className="table-id-badge" style={{fontSize: '1.5rem', padding: '15px', background: order.status === 'served' ? '#10b981' : '#6366f1'}}>
+                {order.table_id === 'Takeaway' ? '🥡' : `T${order.table_id}`}
+              </div>
+              <div className="order-meta" style={{ gap: '4px', position: 'relative', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span className="customer-name" style={{fontSize: '1.25rem', fontWeight: '900'}}>{order.customer_name}</span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn-add-item-card" onClick={() => { setSelectedOrder(order); setShowAddItemModal(true); }}>+ Add</button>
+                    <button 
+                      className="btn-cancel-x" 
+                      onClick={() => handleCancelOrDeleteOrder(order)}
+                      style={{ 
+                        background: '#fee2e2', 
+                        color: '#ef4444', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        width: '32px', 
+                        height: '32px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold'
+                      }}
+                      title="Cancel Order"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                <span className="customer-phone" style={{fontSize: '0.9rem', color: '#64748b', fontWeight: '700'}}>📞 {order.customer_phone}</span>
+                <span className="order-time" style={{ background: '#f1f5f9', display: 'inline-block', padding: '4px 8px', borderRadius: '6px', width: 'fit-content', marginTop: '4px' }}>{order.status === 'preparing' ? '⏳ Preparing' : '✅ Ready'} • {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              </div>
+            </div>
             <div className="card-items" style={{ maxHeight: '220px', overflowY: 'auto', minHeight: '120px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', padding: '15px' }}>
               {order.items.map((item, idx) => (
                 <div key={idx} className="item-line" style={{fontSize: '1.1rem', paddingBottom: '8px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1515,34 +1550,26 @@ const Admin = () => {
 
   const handleCancelOrDeleteOrder = async (order) => {
     if (!order) return;
+    if (!window.confirm(`Are you sure you want to cancel and PERMANENTLY delete Table ${order.table_id}'s order?`)) return;
+    
     try {
-      if (order.total_price <= 2) {
-        const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}`, { method: 'DELETE' });
-        if (res.ok) addNotification("Order cancelled and removed.", "success");
+      const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        addNotification("Order permanently removed.", "success");
+        setShowBillingModal(false);
+        setBillingDiscount(0);
+        setBillingExtraMoney(0);
+        fetchOrders();
+        fetchHistory();
       } else {
-        const res = await fetch(`${API_BASE_URL}/api/orders/${order.id}/complete`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            payment_mode: 'cash',
-            discount: 0,
-            extra_money: 0,
-            final_amount: order.total_price
-          })
-        });
-        if (res.ok) addNotification("Order saved to history (Cash).", "success");
+        addNotification("Failed to remove order", "error");
       }
-      setShowBillingModal(false);
-      setBillingDiscount(0);
-      setBillingExtraMoney(0);
-      fetchOrders();
-      fetchHistory();
-      fetchWallet();
     } catch (e) {
       console.error(e);
       addNotification("Failed to process cancellation", "error");
     }
   };
+
 
   const handleMoveOrder = async (orderId, newTableId) => {
     try {
@@ -1756,6 +1783,7 @@ const Admin = () => {
               setShowBillingModal={setShowBillingModal}
               handleDeleteItemFromOrder={handleDeleteItemFromOrder}
               setShowAddItemModal={setShowAddItemModal}
+              handleCancelOrDeleteOrder={handleCancelOrDeleteOrder}
             />
           ) : (
             <div>View: {currentView}</div>
