@@ -2233,7 +2233,6 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
                     value={payAmount}
                     onChange={e => setPayAmount(e.target.value)}
                     required
-                    autoFocus
                     style={{
                       width: '100%', padding: '14px 16px 14px 36px',
                       borderRadius: '14px', border: '2px solid #e2e8f0',
@@ -4039,7 +4038,6 @@ const Admin = () => {
                   placeholder="Search member by name or phone..."
                   value={startOrderSearch}
                   onChange={e => setStartOrderSearch(e.target.value)}
-                  autoFocus
                   style={{
                     width: '100%', padding: '11px 16px 11px 42px', borderRadius: '14px',
                     border: '1.5px solid #e2e8f0', fontSize: '0.92rem', fontWeight: '600',
@@ -4174,7 +4172,6 @@ const Admin = () => {
                   placeholder="e.g. Amit Sharma" 
                   value={newMemberName} 
                   onChange={e => setNewMemberName(e.target.value)} 
-                  autoFocus
                 />
               </div>
               <div className="form-group">
