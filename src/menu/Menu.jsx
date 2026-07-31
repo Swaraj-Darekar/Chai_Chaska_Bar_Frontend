@@ -18,9 +18,7 @@ const Menu = () => {
     const cached = localStorage.getItem('cached_menu_data');
     return cached ? JSON.parse(cached) : [];
   });
-  const [activeCategory, setActiveCategory] = useState(() => {
-    return localStorage.getItem('cached_active_category') || '';
-  });
+  const [activeCategory, setActiveCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -84,7 +82,26 @@ const Menu = () => {
           itemRes.json()
         ]);
         
-        const groupedData = categories.map(cat => ({
+        const getPriority = (name) => {
+          const n = (name || '').toLowerCase();
+          if (n.includes('chai') || (n.includes('tea') && !n.includes('ice'))) return 1;
+          if (n.includes('ciga') || n.includes('cigr') || n.includes('cigarette') || n.includes('smoke') || n.includes('tobacco')) return 2;
+          if (n.includes('hot') && (n.includes('coff') || n.includes('cofe') || n.includes('coffee'))) return 3;
+          if (n.includes('cold') && (n.includes('coff') || n.includes('cofe') || n.includes('coffee'))) return 4;
+          if (n.includes('ice') && (n.includes('tea') || n.includes('lemon'))) return 5;
+          if (n.includes('mocktail') || n.includes('shake') || n.includes('cooler') || n.includes('cold drink')) return 6;
+          if (n.includes('water') || n.includes('bottle')) return 7;
+          return 99;
+        };
+
+        const sortedCats = Array.isArray(categories) ? [...categories].sort((a, b) => {
+          const pA = getPriority(a.name);
+          const pB = getPriority(b.name);
+          if (pA !== pB) return pA - pB;
+          return (a.name || '').localeCompare(b.name || '');
+        }) : [];
+        
+        const groupedData = sortedCats.map(cat => ({
           category: cat.name,
           emoji: '🍽️',
           items: items.filter(item => item.category_id === cat.id).map(item => ({...item, veg: true})) // Assuming all veg for mock UI
@@ -94,9 +111,8 @@ const Menu = () => {
            setMenuData(groupedData);
            setActiveCategory(groupedData[0].category);
            
-           // Cache for instant load next time
+           // Cache menu data for instant load next time
            localStorage.setItem('cached_menu_data', JSON.stringify(groupedData));
-           localStorage.setItem('cached_active_category', groupedData[0].category);
         }
       } catch (err) {
         console.error("Failed to load menu data", err);

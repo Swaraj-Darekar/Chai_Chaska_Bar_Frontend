@@ -6,7 +6,7 @@ const SuperAdmin = () => {
   const [currentView, setCurrentView] = useState('dashboard');
   const [walletBalance, setWalletBalance] = useState(0);
   const [analytics, setAnalytics] = useState({
-    todaysBookings: 0, todaysEarnings: 0, monthlyBookings: 0, monthlyEarnings: 0, commissionRate: 2
+    todaysBookings: 0, todaysEarnings: 0, monthlyBookings: 0, monthlyEarnings: 0, commissionRate: 3
   });
 
   React.useEffect(() => {
