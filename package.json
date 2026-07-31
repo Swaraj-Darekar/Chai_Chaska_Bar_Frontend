@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx vite build",
+    "build": "node -e \"const fs=require('fs'),p=require('path');try{fs.readdirSync('./node_modules/.bin').forEach(f=>fs.chmodSync(p.join('./node_modules/.bin',f),0o755))}catch(e){}\" && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
