@@ -1118,6 +1118,7 @@ const PLATFORM_FEE_PER_DAY = 5;
 const MembersView = ({ members, setMembers, onAddMember, addNotification, refreshMembers, activeOrders = [] }) => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberHistory, setMemberHistory] = useState([]);
+  const [memberHistoryLoading, setMemberHistoryLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [modalTab, setModalTab] = useState('all'); // 'all' | 'purchases' | 'payments'
 
@@ -1149,22 +1150,19 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
 
   useEffect(() => {
     if (selectedMember) {
-      // Fetch member history
-      fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/history`)
-        .then(res => res.json())
-        .then(data => setMemberHistory(Array.isArray(data) ? data : []))
-        .catch(e => {
-          console.error("History fetch error", e);
-          setMemberHistory([]);
-        });
-
-      // Fetch platform fee for this member
-      fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/platform-fee`)
-        .then(res => res.json())
-        .then(data => setMemberPlatformFee(data))
-        .catch(() => setMemberPlatformFee(null));
+      setMemberHistoryLoading(true);
+      // Fire BOTH fetches simultaneously — no sequential waiting
+      Promise.all([
+        fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/history`).then(r => r.json()).catch(() => []),
+        fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/platform-fee`).then(r => r.json()).catch(() => null)
+      ]).then(([histData, feeData]) => {
+        setMemberHistory(Array.isArray(histData) ? histData : []);
+        setMemberPlatformFee(feeData);
+        setMemberHistoryLoading(false);
+      });
     } else {
       setMemberPlatformFee(null);
+      setMemberHistoryLoading(false);
     }
   }, [selectedMember]);
 
@@ -1891,7 +1889,22 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
                 </div>
               )}
 
-              {filteredHistory.length === 0 ? (
+              {memberHistoryLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {[1,2,3].map(i => (
+                      <div key={i} style={{
+                        height: '60px', borderRadius: '12px',
+                        background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.2s infinite',
+                        opacity: 1 - i * 0.2
+                      }} />
+                    ))}
+                  </div>
+                  <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+                </div>
+              ) : filteredHistory.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '50px 20px', color: '#94a3b8', background: '#f8fafc', borderRadius: '16px' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>
                     {modalTab === 'due' ? '✅' : '📭'}
