@@ -1307,12 +1307,16 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
         
         if (refreshMembers) refreshMembers();
         
-        const hRes = await fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/history`);
+        // Fetch history and members list simultaneously — no sequential wait
+        const [hRes, mRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/history`),
+          fetch(`${API_BASE_URL}/api/members`)
+        ]);
         if (hRes.ok) setMemberHistory(await hRes.json());
-
-        const mRes = await fetch(`${API_BASE_URL}/api/members`);
         if (mRes.ok) {
           const allM = await mRes.json();
+          setMembers(allM);
+          try { localStorage.setItem('cached_admin_members', JSON.stringify(allM)); } catch(e) {}
           const refreshed = allM.find(m => m.id === selectedMember.id);
           if (refreshed) setSelectedMember(refreshed);
         }
@@ -2710,8 +2714,13 @@ const Admin = () => {
   };
   const [showDiscountInput, setShowDiscountInput] = useState(false);
 
-  // Members System States
-  const [members, setMembers] = useState([]);
+  // Members System States — preload from cache for instant display
+  const [members, setMembers] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_admin_members');
+      return cached ? JSON.parse(cached) : [];
+    } catch(e) { return []; }
+  });
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberPhone, setNewMemberPhone] = useState('');
@@ -2722,6 +2731,8 @@ const Admin = () => {
       if (res.ok) {
         const data = await res.json();
         setMembers(data);
+        // Cache for instant display next time
+        try { localStorage.setItem('cached_admin_members', JSON.stringify(data)); } catch(e) {}
       }
     } catch (e) {
       console.error("Failed to fetch members", e);
@@ -3031,9 +3042,8 @@ const Admin = () => {
         addNotification(paymentType === 'paid' ? `✅ Order paid by ${memberQuickTarget.name}!` : `📋 Order marked as due for ${memberQuickTarget.name}`, 'success');
         setMemberQuickCart([]);
         setShowMemberQuickOrder(false);
-        fetchMembers();
-        fetchOrders();
-        fetchHistory();
+        // All 3 refreshes run in parallel — no sequential waiting
+        Promise.all([fetchMembers(), fetchOrders(), fetchHistory()]);
       } else {
         addNotification('Failed to process member order', 'error');
       }
@@ -3057,7 +3067,12 @@ const Admin = () => {
     }, 4000);
   };
 
-  const ringTone = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+  // Use a ref so the Audio object is created once, not on every render
+  const ringToneRef = useRef(null);
+  if (!ringToneRef.current) {
+    ringToneRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+  }
+  const ringTone = ringToneRef.current;
 
   const fetchMenuData = async () => {
     try {
@@ -3109,12 +3124,15 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    fetchMenuData();
-    fetchWallet();
-    fetchExpenses();
-    fetchSettlements();
-    fetchHistory();
-    fetchMembers();
+    // Fire ALL initial data loads in parallel — much faster than sequential
+    Promise.all([
+      fetchMenuData(),
+      fetchWallet(),
+      fetchExpenses(),
+      fetchSettlements(),
+      fetchHistory(),
+      fetchMembers(),
+    ]);
   }, []);
 
   const fetchOrders = async () => {
@@ -3924,11 +3942,8 @@ const Admin = () => {
                           setBillingExtraMoney(0);
                           setHistoryOrders(prev => [completedRecord, ...prev]);
                           setActiveOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
-                          setTimeout(() => {
-                            fetchOrders();
-                            fetchHistory();
-                            fetchMembers();
-                          }, 1000);
+                          // No delay — refresh in background immediately
+                          Promise.all([fetchOrders(), fetchHistory(), fetchMembers()]);
                           addNotification(`📋 ₹${Math.round(billingFinalPayable)} marked as DUE for Member!`, 'info');
                         } catch (e) {
                           console.error(e); addNotification('Failed to mark as due', 'error');
@@ -3978,12 +3993,8 @@ const Admin = () => {
                         setBillingExtraMoney(0); 
                         setHistoryOrders(prev => [completedRecord, ...prev]);
                         setActiveOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
-                        setTimeout(() => {
-                          fetchOrders(); 
-                          fetchHistory(); 
-                          fetchWallet();
-                          fetchMembers();
-                        }, 1000);
+                        // No delay — refresh wallet + members + orders + history in parallel
+                        Promise.all([fetchOrders(), fetchHistory(), fetchWallet(), fetchMembers()]);
                         addNotification(`✅ Bill paid! ₹${Math.round(billingFinalPayable)}`, 'success'); 
                       } catch (e) { 
                         console.error(e); addNotification('Failed to complete payment', 'error'); 
