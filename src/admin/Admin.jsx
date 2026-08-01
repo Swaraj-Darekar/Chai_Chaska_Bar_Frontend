@@ -1375,8 +1375,8 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
 
   const handleResetLedgerSubmit = async (e) => {
     e.preventDefault();
-    if (adminPassword !== '1234' && adminPassword !== 'admin123' && adminPassword !== 'admin') {
-      setPasswordError("Incorrect admin password. Try 1234 or admin123");
+    if (adminPassword !== 'admin123') {
+      setPasswordError("Incorrect admin password. Required: admin123");
       return;
     }
     try {
@@ -1391,7 +1391,8 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
         setPasswordError('');
         if (refreshMembers) refreshMembers();
       } else {
-        if (addNotification) addNotification("Failed to reset ledger", "error");
+        const errData = await res.json().catch(() => ({}));
+        if (addNotification) addNotification(errData.detail || "Failed to reset ledger", "error");
       }
     } catch (err) {
       console.error(err);
@@ -1401,23 +1402,31 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
 
   const handleDeleteMemberSubmit = async (e) => {
     e.preventDefault();
-    if (adminPassword !== '1234' && adminPassword !== 'admin123' && adminPassword !== 'admin') {
-      setPasswordError("Incorrect admin password. Try 1234 or admin123");
+    if (adminPassword !== 'admin123') {
+      setPasswordError("Incorrect admin password. Required: admin123");
       return;
     }
+    const targetMember = activeSettingMember;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/members/${activeSettingMember.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/members/${targetMember.id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
-        if (addNotification) addNotification(`Deleted member ${activeSettingMember.name}`, "info");
+        if (addNotification) addNotification(`Deleted member ${targetMember.name}`, "info");
         setSettingAction(null);
         setActiveSettingMember(null);
+        setSelectedMember(prev => (prev && prev.id === targetMember.id ? null : prev));
         setAdminPassword('');
         setPasswordError('');
+        setMembers(prev => {
+          const updated = prev.filter(m => m.id !== targetMember.id);
+          try { localStorage.setItem('cached_admin_members', JSON.stringify(updated)); } catch(e) {}
+          return updated;
+        });
         if (refreshMembers) refreshMembers();
       } else {
-        if (addNotification) addNotification("Failed to delete member", "error");
+        const errData = await res.json().catch(() => ({}));
+        if (addNotification) addNotification(errData.detail || "Failed to delete member", "error");
       }
     } catch (err) {
       console.error(err);
@@ -2585,7 +2594,7 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
                     value={adminPassword}
                     onChange={e => { setAdminPassword(e.target.value); setPasswordError(''); }}
                     required
-                    placeholder="Enter admin password (e.g. 1234)..."
+                    placeholder="Enter admin password (admin123)..."
                     style={{
                       width: '100%', padding: '12px 14px', borderRadius: '12px',
                       border: `2px solid ${passwordError ? '#ef4444' : '#e2e8f0'}`,
@@ -2636,7 +2645,7 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
                     value={adminPassword}
                     onChange={e => { setAdminPassword(e.target.value); setPasswordError(''); }}
                     required
-                    placeholder="Enter admin password (e.g. 1234)..."
+                    placeholder="Enter admin password (admin123)..."
                     style={{
                       width: '100%', padding: '12px 14px', borderRadius: '12px',
                       border: `2px solid ${passwordError ? '#ef4444' : '#e2e8f0'}`,
