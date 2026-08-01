@@ -53,33 +53,68 @@ const LandingPage = () => {
   );
 };
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("React Error Boundary caught an error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#fff8f3', padding: '20px', textAlign: 'center' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>☕</div>
+          <h2 style={{ color: '#1e293b', marginBottom: '8px' }}>Something went wrong</h2>
+          <p style={{ color: '#64748b', maxWidth: '400px', marginBottom: '20px' }}>
+            An unexpected display error occurred. Click below to reload the app.
+          </p>
+          <button
+            onClick={() => { window.location.reload(); }}
+            style={{ padding: '12px 24px', background: '#e8580c', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            Reload Application
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <div className="app-wrapper">
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute role="admin">
-                <Admin />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/superadmin" 
-            element={
-              <ProtectedRoute role="superadmin">
-                <SuperAdmin />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/menu" element={<Menu />} />
-        </Routes>
-      </Suspense>
-    </div>
+    <ErrorBoundary>
+      <div className="app-wrapper">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute role="admin">
+                  <Admin />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/superadmin" 
+              element={
+                <ProtectedRoute role="superadmin">
+                  <SuperAdmin />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/menu" element={<Menu />} />
+          </Routes>
+        </Suspense>
+      </div>
+    </ErrorBoundary>
   );
 }
 

@@ -900,26 +900,58 @@ const SettingsView = ({
   const [newCategoryName, setNewCategoryName] = useState('');
 
   const handleAddCategory = async () => {
-    if (!newCategoryName) return;
+    if (!newCategoryName || !newCategoryName.trim()) return;
     try {
       const catPost = await fetch(`${API_BASE_URL}/api/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCategoryName })
+        body: JSON.stringify({ name: newCategoryName.trim() })
       });
+      if (!catPost.ok) {
+        const errData = await catPost.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to add category');
+      }
       const catData = await catPost.json();
-      setCategories([...categories, catData]);
-      setNewCategoryName('');
-      addNotification('Category added successfully!', 'success');
-    } catch(e) { addNotification('Failed to add category', 'error'); }
+      if (catData && catData.id && catData.name) {
+        setCategories(prev => Array.isArray(prev) ? [...prev.filter(c => c.id !== catData.id), catData] : [catData]);
+        setNewCategoryName('');
+        addNotification('Category added successfully!', 'success');
+        fetchMenuData();
+      }
+    } catch(e) { addNotification(e.message || 'Failed to add category', 'error'); }
+  };
+
+  const compressImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.src = reader.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 400;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+          else { w = Math.round((w * maxDim) / h); h = maxDim; }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        callback(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = () => callback(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => { setNewItem({ ...newItem, image_url: reader.result }); };
-      reader.readAsDataURL(file);
+      compressImage(file, (compressedUrl) => {
+        setNewItem(prev => ({ ...prev, image_url: compressedUrl }));
+      });
     }
   };
 
@@ -984,13 +1016,12 @@ const SettingsView = ({
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onloadend = async () => {
+      compressImage(file, async (compressedUrl) => {
         try {
           const res = await fetch(`${API_BASE_URL}/api/menu/${item.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...item, image_url: reader.result })
+            body: JSON.stringify({ ...item, image_url: compressedUrl })
           });
           if (res.ok) {
             fetchMenuData();
@@ -999,25 +1030,37 @@ const SettingsView = ({
             addNotification('Failed to update image', 'error');
           }
         } catch(e) { addNotification('Failed to update image', 'error'); }
-      };
-      reader.readAsDataURL(file);
+      });
     };
     input.click();
   };
 
   const handleAddItem = async () => {
-    if (!newItem.name || !newItem.price || !newItem.category_id) { addNotification('Please choose category, name and price.', 'error'); return; }
+    if (!newItem.name || !newItem.name.trim() || !newItem.price || !newItem.category_id) {
+      addNotification('Please choose category, name and price.', 'error');
+      return;
+    }
     try {
       const fallbackImage = 'https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=300&auto=format&fit=crop';
-      await fetch(`${API_BASE_URL}/api/menu`, {
+      const res = await fetch(`${API_BASE_URL}/api/menu`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newItem.name, price: parseFloat(newItem.price), category_id: parseInt(newItem.category_id), image_url: newItem.image_url || fallbackImage })
+        body: JSON.stringify({
+          name: newItem.name.trim(),
+          price: parseFloat(newItem.price),
+          category_id: parseInt(newItem.category_id),
+          image_url: newItem.image_url || fallbackImage
+        })
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Failed to add item');
+      }
       setShowAddModal(false);
       setNewItem({ name: '', price: '', category_id: '', image_url: '' });
       addNotification('Item added successfully!', 'success');
-    } catch (e) { addNotification('Failed to add item', 'error'); }
+      fetchMenuData();
+    } catch (e) { addNotification(e.message || 'Failed to add item', 'error'); }
   };
 
   const handleSave = () => { addNotification('Settings saved successfully!', 'success'); };
@@ -2960,6 +3003,7 @@ const Admin = () => {
 
   const sortCategoriesByPriority = (cats) => {
     if (!Array.isArray(cats)) return [];
+    const validCats = cats.filter(c => c && typeof c === 'object' && c.id && c.name);
     const getPriority = (name) => {
       const n = (name || '').toLowerCase();
       if (n.includes('chai') || (n.includes('tea') && !n.includes('ice'))) return 1;
@@ -2971,7 +3015,7 @@ const Admin = () => {
       if (n.includes('water') || n.includes('bottle')) return 7;
       return 99;
     };
-    return [...cats].sort((a, b) => {
+    return [...validCats].sort((a, b) => {
       const pA = getPriority(a.name);
       const pB = getPriority(b.name);
       if (pA !== pB) return pA - pB;
