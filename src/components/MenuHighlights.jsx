@@ -50,7 +50,7 @@ const MenuHighlights = () => {
               key={item.id}
             >
               <div className="menu-image-container">
-                <img src={item.image} alt={item.name} className="menu-image" />
+                <img src={item.image} alt={item.name} className="menu-image" loading="lazy" decoding="async" />
                 {item.tag && <span className="menu-tag">{item.tag}</span>}
               </div>
               <div className="menu-info">

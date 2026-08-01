@@ -1,23 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './Hero.css';
 
 const Hero = () => {
-  const [scrollY, setScrollY] = useState(0);
+  const bgRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrollY(window.scrollY);
+      if (bgRef.current) {
+        bgRef.current.style.transform = `translateY(${window.scrollY * 0.5}px)`;
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    // passive: true tells the browser it can scroll immediately, no need to wait
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
     <section className="hero-section" id="home">
-      <div 
-        className="hero-background"
-        style={{ transform: `translateY(${scrollY * 0.5}px)` }}
-      ></div>
+      <div ref={bgRef} className="hero-background"></div>
       <div className="hero-overlay"></div>
       
       <div className="container hero-content">

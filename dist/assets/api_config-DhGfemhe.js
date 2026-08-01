@@ -1,0 +1,1 @@
+var e=`http://localhost:8000`;export{e as t};
