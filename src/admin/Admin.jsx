@@ -1115,7 +1115,7 @@ const SettingsView = ({
 
 const PLATFORM_FEE_PER_DAY = 5;
 
-const MembersView = ({ members, setMembers, onAddMember, addNotification, refreshMembers, activeOrders = [] }) => {
+const MembersView = ({ members, setMembers, onAddMember, addNotification, refreshMembers, activeOrders = [], onWalletRefresh }) => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberHistory, setMemberHistory] = useState([]);
   const [memberHistoryLoading, setMemberHistoryLoading] = useState(false);
@@ -1149,21 +1149,38 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
   };
 
   useEffect(() => {
-    if (selectedMember) {
-      setMemberHistoryLoading(true);
-      // Fire BOTH fetches simultaneously — no sequential waiting
-      Promise.all([
-        fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/history`).then(r => r.json()).catch(() => []),
-        fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/platform-fee`).then(r => r.json()).catch(() => null)
-      ]).then(([histData, feeData]) => {
-        setMemberHistory(Array.isArray(histData) ? histData : []);
-        setMemberPlatformFee(feeData);
-        setMemberHistoryLoading(false);
-      });
-    } else {
+    if (!selectedMember) {
       setMemberPlatformFee(null);
       setMemberHistoryLoading(false);
+      return;
     }
+
+    // Reset immediately so old member's data never shows for new member
+    setMemberHistory([]);
+    setMemberHistoryLoading(true);
+
+    // AbortController cancels the fetch if member changes before it completes
+    // This prevents race condition: clicking A then B quickly showing A's data
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/history`, { signal })
+        .then(r => r.json())
+        .catch(e => { if (e.name === 'AbortError') return null; return []; }),
+      fetch(`${API_BASE_URL}/api/members/${selectedMember.id}/platform-fee`, { signal })
+        .then(r => r.json())
+        .catch(e => { if (e.name === 'AbortError') return null; return null; })
+    ]).then(([histData, feeData]) => {
+      // If aborted, both will be null — skip state update
+      if (histData === null && feeData === null) return;
+      setMemberHistory(Array.isArray(histData) ? histData : []);
+      setMemberPlatformFee(feeData);
+      setMemberHistoryLoading(false);
+    });
+
+    // Cleanup: cancel the fetch if member changes before it finishes
+    return () => controller.abort();
   }, [selectedMember]);
 
   const getMemberActiveDue = (memberId, memberPhone) => {
@@ -1232,10 +1249,13 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
   const lastPaymentDate = lastPayment && lastPayment.date ? new Date(lastPayment.date) : null;
 
   // Purchases since last payment (or all purchases if no payments ever)
+  // CRITICAL FIX: if item.date is null/undefined, treat it as part of due cycle
+  // (old code: new Date(null||0) = 1970 which is always < lastPaymentDate, hiding the item!)
   const dueSincePurchases = history.filter(item => {
     if (item.type !== 'purchase') return false;
-    if (!lastPaymentDate) return true; // no payments yet → all purchases are "due cycle"
-    return new Date(item.date || 0) > lastPaymentDate;
+    if (!lastPaymentDate) return true; // no payments yet → all purchases are due
+    if (!item.date) return true;       // null date → assume it's a recent due purchase
+    return new Date(item.date) > lastPaymentDate;
   });
 
   const dueCycleItems = dueSincePurchases;
@@ -1318,6 +1338,8 @@ const MembersView = ({ members, setMembers, onAddMember, addNotification, refres
           const refreshed = allM.find(m => m.id === selectedMember.id);
           if (refreshed) setSelectedMember(refreshed);
         }
+        // Refresh wallet too — platform fee gets credited on payment
+        if (onWalletRefresh) onWalletRefresh();
       }
     } catch (err) {
       console.error(err);
@@ -3055,8 +3077,8 @@ const Admin = () => {
         addNotification(paymentType === 'paid' ? `✅ Order paid by ${memberQuickTarget.name}!` : `📋 Order marked as due for ${memberQuickTarget.name}`, 'success');
         setMemberQuickCart([]);
         setShowMemberQuickOrder(false);
-        // All 3 refreshes run in parallel — no sequential waiting
-        Promise.all([fetchMembers(), fetchOrders(), fetchHistory()]);
+        // All refreshes run in parallel — including wallet balance
+        Promise.all([fetchMembers(), fetchOrders(), fetchHistory(), fetchWallet()]);
       } else {
         addNotification('Failed to process member order', 'error');
       }
@@ -3174,7 +3196,12 @@ const Admin = () => {
   useEffect(() => {
     fetchOrders();
     const intervalId = setInterval(fetchOrders, 5000);
-    return () => clearInterval(intervalId);
+    // Wallet auto-refresh every 8 seconds — balance always stays live
+    const walletIntervalId = setInterval(fetchWallet, 8000);
+    return () => {
+      clearInterval(intervalId);
+      clearInterval(walletIntervalId);
+    };
   }, []);
 
   // Continuous ringing while notifications exist
@@ -3584,6 +3611,7 @@ const Admin = () => {
               addNotification={addNotification}
               refreshMembers={fetchMembers}
               activeOrders={activeOrders}
+              onWalletRefresh={fetchWallet}
             />
           ) : (
             <div>View: {currentView}</div>
@@ -3955,8 +3983,8 @@ const Admin = () => {
                           setBillingExtraMoney(0);
                           setHistoryOrders(prev => [completedRecord, ...prev]);
                           setActiveOrders(prev => prev.filter(o => o.id !== selectedOrder.id));
-                          // No delay — refresh in background immediately
-                          Promise.all([fetchOrders(), fetchHistory(), fetchMembers()]);
+                          // No delay — refresh all including wallet immediately
+                          Promise.all([fetchOrders(), fetchHistory(), fetchMembers(), fetchWallet()]);
                           addNotification(`📋 ₹${Math.round(billingFinalPayable)} marked as DUE for Member!`, 'info');
                         } catch (e) {
                           console.error(e); addNotification('Failed to mark as due', 'error');
