@@ -57,6 +57,28 @@ const groupOrdersByDate = (orders) => {
 };
 
 
+const sortCategoriesByPriority = (cats) => {
+  if (!Array.isArray(cats)) return [];
+  const validCats = cats.filter(c => c && typeof c === 'object' && c.id && c.name);
+  const getPriority = (name) => {
+    const n = (name || '').toLowerCase();
+    if (n.includes('chai') || (n.includes('tea') && !n.includes('ice'))) return 1;
+    if (n.includes('ciga') || n.includes('cigr') || n.includes('cigarette') || n.includes('smoke') || n.includes('tobacco')) return 2;
+    if (n.includes('hot') && (n.includes('coff') || n.includes('cofe') || n.includes('coffee'))) return 3;
+    if (n.includes('cold') && (n.includes('coff') || n.includes('cofe') || n.includes('coffee'))) return 4;
+    if (n.includes('ice') && (n.includes('tea') || n.includes('lemon'))) return 5;
+    if (n.includes('mocktail') || n.includes('shake') || n.includes('cooler') || n.includes('cold drink')) return 6;
+    if (n.includes('water') || n.includes('bottle')) return 7;
+    return 99;
+  };
+  return [...validCats].sort((a, b) => {
+    const pA = getPriority(a.name);
+    const pB = getPriority(b.name);
+    if (pA !== pB) return pA - pB;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+};
+
 const DashboardView = ({ 
   activeOrders = [], 
   tables, 
@@ -3001,27 +3023,7 @@ const Admin = () => {
   const [memberQuickCategory, setMemberQuickCategory] = useState('All');
   const [memberQuickSearch, setMemberQuickSearch] = useState('');
 
-  const sortCategoriesByPriority = (cats) => {
-    if (!Array.isArray(cats)) return [];
-    const validCats = cats.filter(c => c && typeof c === 'object' && c.id && c.name);
-    const getPriority = (name) => {
-      const n = (name || '').toLowerCase();
-      if (n.includes('chai') || (n.includes('tea') && !n.includes('ice'))) return 1;
-      if (n.includes('ciga') || n.includes('cigr') || n.includes('cigarette') || n.includes('smoke') || n.includes('tobacco')) return 2;
-      if (n.includes('hot') && (n.includes('coff') || n.includes('cofe') || n.includes('coffee'))) return 3;
-      if (n.includes('cold') && (n.includes('coff') || n.includes('cofe') || n.includes('coffee'))) return 4;
-      if (n.includes('ice') && (n.includes('tea') || n.includes('lemon'))) return 5;
-      if (n.includes('mocktail') || n.includes('shake') || n.includes('cooler') || n.includes('cold drink')) return 6;
-      if (n.includes('water') || n.includes('bottle')) return 7;
-      return 99;
-    };
-    return [...validCats].sort((a, b) => {
-      const pA = getPriority(a.name);
-      const pB = getPriority(b.name);
-      if (pA !== pB) return pA - pB;
-      return (a.name || '').localeCompare(b.name || '');
-    });
-  };
+
 
   const handleStartOrder = (tableId) => {
     if (walletBalance < 10) {
